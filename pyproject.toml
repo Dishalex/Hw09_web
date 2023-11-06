@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "hw09-web"
+version = "0.1.0"
+description = "WEB scrapping"
+authors = ["Dishalex <dishalex@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "hw09_web"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+mongoengine = "^0.27.0"
+beautifulsoup4 = "^4.12.2"
+requests = "^2.31.0"
+sqlalchemy = "^2.0.23"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
