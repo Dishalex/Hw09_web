@@ -1,70 +1,54 @@
-import requests
-from bs4 import BeautifulSoup
-import json
-from models import Author, Quote
-import connect
+import scrapy
+from scrapy.crawler import CrawlerProcess
+from scrapy import Item, Field
 
-# Отримання цитат та авторів зі сторінки
-def scrape_quotes_page(url):
-    response = requests.get(url)
-    soup = BeautifulSoup(response.content, 'html.parser')
-    quotes = []
 
-    for quote_div in soup.find_all('div', class_='quote'):
-        quote_text = quote_div.find('span', class_='text').get_text()
-        author_name = quote_div.find('small', class_='author').get_text()
-        author = Author.objects(fullname=author_name).first()
+class QuoteItem(Item):
+    keywords = Field()
+    author = Field()
+    quote = Field()
 
-        if not author:
-            author = Author(fullname=author_name)
-            author.save()
+class AuthorItem(Item):
+    fullname = Field()
+    date_born = Field()
+    location_born = Field()
+    bio = Field()
 
-        tags = [tag.get_text() for tag in quote_div.find_all('a', class_='tag')]
-        quote = Quote(quote=quote_text, author=author, tags=tags)
-        quote.save()
 
-        quotes.append(quote)
+class QuotesSpider(scrapy.Spider):
+    name = 'authors'
+    allowed_domains = ['quotes.toscrape.com']
+    start_urls = ['http://quotes.toscrape.com/']
+    custom_settings = {"FEED_FORMAT": "json", "FEED_URI": "result.json"}
 
-    return quotes
-
-# Отримання посилань на наступні сторінки
-def get_next_page_url(url):
-    response = requests.get(url)
-    soup = BeautifulSoup(response.content, 'html.parser')
-    next_page_link = soup.find('li', class_='next').find('a')
-    if next_page_link:
-        next_page_url = next_page_link['href']
-        if not next_page_url.startswith('http'):
-            next_page_url = f"http://quotes.toscrape.com{next_page_url}"
-        return next_page_url
-    else:
-        return None
+    def parse(self, response):
+        for quote in response.xpath("/html//div[@class='quote']"):
+            keywords = quote.xpath("div[@class='tags']/a/text()").extract()
+            author = quote.xpath("span/small/text()").get().strip()
+            q = quote.xpath("span[@class='text']/text()").get()
+            yield QuoteItem(keywords=keywords, author=author, quote=q)
+            yield response.follow(url=self.start_urls[0] + quote.xpath('span/a/@href').get() , callback=self.nested_parse_author)
 
 
 
-# Основна функція для скрапінгу всіх сторінок сайту
-def scrape_all_pages(url):
-    all_quotes = []
-    while url:
-        if not url.startswith('http'):
-            url = f"http://quotes.toscrape.com{url}"
-        quotes = scrape_quotes_page(url)
-        all_quotes.extend(quotes)
-        url = get_next_page_url(url)
+        next_link = response.xpath("//li[@class='next']/a/@href").get()
+        if next_link:
+            yield scrapy.Request(url=self.start_urls[0] + next_link)
+    
+    def nested_parse_author(self, response, *args):
+        author = response.xpath("html//div[@class='author-details']")
+        fullname = author.xpath("h3[@class='author-title']/text()").get().strip()
+        date_born = author.xpath("p/span[@class='author-born-date']/text()").get().strip()
+        location_born = author.xpath("p/span[@class='author-born-location']/text()").get().strip()
+        bio = author.xpath("div[@class='author-description']/text()").get().strip()
+        yield AuthorItem(fullname=fullname, date_born=date_born, location_born=location_born, bio=bio)
 
-    return all_quotes
+
 
 
 if __name__ == '__main__':
-    base_url = 'http://quotes.toscrape.com'
-    all_quotes = scrape_all_pages(base_url)
-
-    with open('quotes.json', 'w') as quotes_file:
-        json.dump(all_quotes, quotes_file, indent=2)
-
-    # Збереження авторів
-    authors_data = [{'fullname': author.fullname, 'born_date': author.born_date, 'born_location': author.born_location,
-                     'description': author.description} for author in Author.objects]
-
-    with open('authors.json', 'w') as authors_file:
-        json.dump(authors_data, authors_file, indent=2)
+        
+    # run spider
+    process = CrawlerProcess()
+    process.crawl(QuotesSpider)
+    process.start()
