@@ -2,6 +2,7 @@ import scrapy
 from scrapy.crawler import CrawlerProcess
 from scrapy import Item, Field
 
+from itemadapter import ItemAdapter
 
 class QuoteItem(Item):
     keywords = Field()
@@ -14,12 +15,33 @@ class AuthorItem(Item):
     location_born = Field()
     bio = Field()
 
+class QuotesPipline:
+    quotes = []
+    authors = []
+
+
+    def process_item(self, item, spider):
+        adapter = ItemAdapter(item)
+        if 'fullname' in adapter.keys():
+            self.authors.append({
+                "fullname": adapter["fullname"],
+                "born_date": adapter["born_date"],
+                "born_location": adapter["born_location"],
+                "description": adapter["description"],
+            })
+        if 'quote' in adapter.keys():
+            self.quotes.append({
+                "tags": adapter["tags"],
+                "author": adapter["author"],
+                "quote": adapter["quote"],
+            })
+
 
 class QuotesSpider(scrapy.Spider):
     name = 'authors'
     allowed_domains = ['quotes.toscrape.com']
     start_urls = ['http://quotes.toscrape.com/']
-    custom_settings = {"FEED_FORMAT": "json", "FEED_URI": "result.json"}
+    custom_settings = {"ITEM_PIPELINES": {QuotesPipline: 300}}
 
     def parse(self, response):
         for quote in response.xpath("/html//div[@class='quote']"):
