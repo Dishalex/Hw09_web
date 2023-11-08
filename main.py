@@ -1,11 +1,12 @@
 import scrapy
+import json
 from scrapy.crawler import CrawlerProcess
 from scrapy import Item, Field
 
 from itemadapter import ItemAdapter
 
 class QuoteItem(Item):
-    keywords = Field()
+    tags = Field()
     author = Field()
     quote = Field()
 
@@ -35,6 +36,13 @@ class QuotesPipline:
                 "author": adapter["author"],
                 "quote": adapter["quote"],
             })
+        return item
+
+    def close_spider(self, spider):
+        with open('quotes.json', 'w', encoding='utf-8') as fd:
+            json.dump(self.quotes, fd, ensure_ascii=False)
+        with open('authors.json', 'w', encoding='utf-8') as fd:
+            json.dump(self.authors, fd, ensure_ascii=False)
 
 
 class QuotesSpider(scrapy.Spider):
@@ -45,10 +53,10 @@ class QuotesSpider(scrapy.Spider):
 
     def parse(self, response):
         for quote in response.xpath("/html//div[@class='quote']"):
-            keywords = quote.xpath("div[@class='tags']/a/text()").extract()
+            tags = quote.xpath("div[@class='tags']/a/text()").extract()
             author = quote.xpath("span/small/text()").get().strip()
             q = quote.xpath("span[@class='text']/text()").get()
-            yield QuoteItem(keywords=keywords, author=author, quote=q)
+            yield QuoteItem(tags=tags, author=author, quote=q)
             yield response.follow(url=self.start_urls[0] + quote.xpath('span/a/@href').get() , callback=self.nested_parse_author)
 
 
@@ -58,7 +66,7 @@ class QuotesSpider(scrapy.Spider):
             yield scrapy.Request(url=self.start_urls[0] + next_link)
     
     def nested_parse_author(self, response, *args):
-        author = response.xpath("html//div[@class='author-details']")
+        author = response.xpath("/html//div[@class='author-details']")
         fullname = author.xpath("h3[@class='author-title']/text()").get().strip()
         born_date = author.xpath("p/span[@class='author-born-date']/text()").get().strip()
         born_location = author.xpath("p/span[@class='author-born-location']/text()").get().strip()
