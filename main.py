@@ -11,9 +11,9 @@ class QuoteItem(Item):
 
 class AuthorItem(Item):
     fullname = Field()
-    date_born = Field()
-    location_born = Field()
-    bio = Field()
+    born_date = Field()
+    born_location = Field()
+    description = Field()
 
 class QuotesPipline:
     quotes = []
@@ -60,10 +60,10 @@ class QuotesSpider(scrapy.Spider):
     def nested_parse_author(self, response, *args):
         author = response.xpath("html//div[@class='author-details']")
         fullname = author.xpath("h3[@class='author-title']/text()").get().strip()
-        date_born = author.xpath("p/span[@class='author-born-date']/text()").get().strip()
-        location_born = author.xpath("p/span[@class='author-born-location']/text()").get().strip()
-        bio = author.xpath("div[@class='author-description']/text()").get().strip()
-        yield AuthorItem(fullname=fullname, date_born=date_born, location_born=location_born, bio=bio)
+        born_date = author.xpath("p/span[@class='author-born-date']/text()").get().strip()
+        born_location = author.xpath("p/span[@class='author-born-location']/text()").get().strip()
+        description = author.xpath("div[@class='author-description']/text()").get().strip()
+        yield AuthorItem(fullname=fullname, born_date=born_date, born_location=born_location, description=description)
 
 
 
