@@ -5,6 +5,8 @@ from scrapy import Item, Field
 
 from itemadapter import ItemAdapter
 
+from json_to_db import load_data
+
 class QuoteItem(Item):
     tags = Field()
     author = Field()
@@ -19,7 +21,6 @@ class AuthorItem(Item):
 class QuotesPipline:
     quotes = []
     authors = []
-
 
     def process_item(self, item, spider):
         adapter = ItemAdapter(item)
@@ -39,9 +40,9 @@ class QuotesPipline:
         return item
 
     def close_spider(self, spider):
-        with open('quotes.json', 'w', encoding='utf-8') as fd:
+        with open('json/quotes.json', 'w', encoding='utf-8') as fd:
             json.dump(self.quotes, fd, ensure_ascii=False)
-        with open('authors.json', 'w', encoding='utf-8') as fd:
+        with open('json/authors.json', 'w', encoding='utf-8') as fd:
             json.dump(self.authors, fd, ensure_ascii=False)
 
 
@@ -82,3 +83,5 @@ if __name__ == '__main__':
     process = CrawlerProcess()
     process.crawl(QuotesSpider)
     process.start()
+
+    load_data()

@@ -6,7 +6,7 @@ from mongoengine import Document, StringField, ListField, ReferenceField
 class Author(Document):
     fullname = StringField(required=True)
     born_date = StringField(max_length=30)
-    born_location = StringField(max_length=50)
+    born_location = StringField(max_length=100)
     description = StringField()
     meta = {'allow_inheritance': True}
 

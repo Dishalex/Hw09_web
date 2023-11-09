@@ -18,16 +18,16 @@ connect(host=f"""mongodb+srv://{mongo_user}:{mongodb_pass}@{domain}/{db_name}?re
 # NEXT CODE FOR TESTING CONNECTION
 
 
-# from pymongo.mongo_client import MongoClient
-# from pymongo.server_api import ServerApi
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
 
-# uri = f'mongodb+srv://{mongo_user}:{mongodb_pass}@{domain}/{db_name}?retryWrites=true&w=majority'
+uri = f'mongodb+srv://{mongo_user}:{mongodb_pass}@{domain}/{db_name}?retryWrites=true&w=majority'
 
-# # Create a new client and connect to the server
-# client = MongoClient(uri, server_api=ServerApi('1'))
-# # Send a ping to confirm a successful connection
-# try:
-#     client.admin.command('ping')
-#     print("Pinged your deployment. You successfully connected to MongoDB!")
-# except Exception as e:
-#     print(e)
+# Create a new client and connect to the server
+client = MongoClient(uri, server_api=ServerApi('1'))
+# Send a ping to confirm a successful connection
+try:
+    client.admin.command('ping')
+    print("Pinged your deployment. You successfully connected to MongoDB!")
+except Exception as e:
+    print(e)
